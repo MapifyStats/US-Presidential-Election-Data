@@ -1,0 +1,25 @@
+{
+  "name": "@mapifystats/us-presidential-election-data",
+  "version": "0.1.0",
+  "description": "CSV and JSON Data and parsers for US Presidential Election Data",
+  "main": "index.js",
+  "files": [
+    "data/**/*.csv"
+  ],
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "Data",
+    "Presidential",
+    "Election",
+    "USA",
+    "America"
+  ],
+  "author": "Jeremy Conger",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/MapifyStats/US-Presidential-Election-Data/issues"
+  },
+  "homepage": "https://github.com/MapifyStats/US-Presidential-Election-Data#readme"
+}

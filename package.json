@@ -21,5 +21,8 @@
   "bugs": {
     "url": "https://github.com/MapifyStats/US-Presidential-Election-Data/issues"
   },
-  "homepage": "https://github.com/MapifyStats/US-Presidential-Election-Data#readme"
+  "homepage": "https://github.com/MapifyStats/US-Presidential-Election-Data#readme",
+  "dependencies": {
+    "csv-parser": "^3.0.0"
+  }
 }

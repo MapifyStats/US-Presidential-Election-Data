@@ -11,13 +11,16 @@ function listCSVFiles() {
   return fs.readdirSync(dataDir).filter((file) => file.endsWith(".csv"));
 }
 
-const {
-  convertCsvToJson,
-} = require("./utilities/ElectionYearCsvToJsonConverter");
-//convertCsvToJson(getCSVPath("2016.csv"), getCSVPath("2016.json"));
-
 const { normalizeHeaders } = require("./utilities/HeaderNormalizer");
+const {
+  convertElectionYearCsvToJson,
+} = require("./utilities/ElectionYearCsvToJsonConverter");
+
+// Normalize headers for all CSV files
 normalizeHeaders();
+
+// Convert normalized CSV files to JSON
+// ... (existing code to convert CSV to JSON)
 
 module.exports = {
   getCSVPath,

@@ -1,77 +1,98 @@
 const fs = require("fs");
 const path = require("path");
+const csv = require("csv-parser");
+const createCsvStringifier = require("csv-writer").createObjectCsvStringifier;
 
 function normalizeHeaders() {
-  console.log("Normalizing headers");
+  const uniqueHeadersPath = path.join(
+    __dirname,
+    "..",
+    "data",
+    "uniqueHeaders.txt"
+  );
+  const rawCsvFolder = path.join(__dirname, "..", "data", "rawCsv");
+  const normalizedCsvFolder = path.join(
+    __dirname,
+    "..",
+    "data",
+    "normalizedCsv"
+  );
 
-  const csvDir = path.join(__dirname, "..", "data", "rawCSV");
-  const outputFile = path.join(__dirname, "..", "data", "uniqueHeaders.txt");
-  const files = fs.readdirSync(csvDir).filter((file) => file.endsWith(".csv"));
+  // Ensure the normalizedCsv folder exists
+  if (!fs.existsSync(normalizedCsvFolder)) {
+    fs.mkdirSync(normalizedCsvFolder);
+  }
 
-  let headerSets = {};
+  // Read and parse the uniqueHeaders.txt file
+  const uniqueHeadersContent = fs.readFileSync(uniqueHeadersPath, "utf-8");
+  const headerSets = uniqueHeadersContent.split("\n\n");
 
-  files.forEach((file) => {
-    console.log(`Processing file: ${file}`);
-    const filePath = path.join(csvDir, file);
-    const fileContent = fs.readFileSync(filePath, "utf8");
-    const lines = fileContent.split("\n");
-    const headers = lines[1].split(",").map((header) => header.trim());
+  // Determine the most common header set
+  const mostCommonHeaders = getMostCommonHeaders(headerSets);
 
-    //console.log(`Headers: ${headers}`);
-    let tempSet = {};
-
-    headers.forEach((header) => {
-      if (header === "") {
-        return;
-      }
-
-      if (!tempSet[header]) {
-        tempSet[header] = header;
-      }
-    });
-
-    // Add a hash property to tempSet
-
-    tempSet.hash = Object.values(tempSet).join("").split("").sort().join("");
-    var hash = tempSet.hash;
-
-    //console.log(`Temp Set: ${tempSet.hash}`);
-    if (!headerSets[tempSet.hash]) {
-      delete tempSet.hash;
-      headerSets[hash] = { headers: tempSet, files: [file] };
-    } else {
-      delete tempSet.hash;
-      headerSets[hash].files.push(file);
+  // Process each CSV file in the rawCsv folder
+  fs.readdirSync(rawCsvFolder).forEach((file) => {
+    if (path.extname(file).toLowerCase() === ".csv") {
+      normalizeCSVFile(
+        path.join(rawCsvFolder, file),
+        path.join(normalizedCsvFolder, file),
+        mostCommonHeaders
+      );
     }
-
-    //console.log(`Processed file: ${file}`);
   });
-
-  writeUniqueHeaders(headerSets, outputFile);
 }
 
-function writeUniqueHeaders(headerSets, outputFile) {
-  let output = "";
+function getMostCommonHeaders(headerSets) {
+  const headerCounts = {};
+  let maxCount = 0;
+  let mostCommonHeaders = [];
 
-  console.log("Header Sets Length: ", Object.keys(headerSets).length);
-  console.log("Header Sets: ", headerSets);
+  headerSets.forEach((set) => {
+    const headers = set.split("\n")[0].split(",");
+    const key = headers.join(",");
+    headerCounts[key] = (headerCounts[key] || 0) + 1;
 
-  Object.values(headerSets).forEach((value, key) => {
-    Object.values(value.headers).forEach((header) => {
-      output += `${header},`;
-    });
-    output += `\nFiles: `;
-    Object.values(value.files).forEach((file) => {
-      output += `${file},`;
-    });
-
-    output += "\n";
+    if (headerCounts[key] > maxCount) {
+      maxCount = headerCounts[key];
+      mostCommonHeaders = headers;
+    }
   });
 
-  fs.writeFileSync(outputFile, output);
-  console.log(`Unique headers have been written to ${outputFile}`);
+  return mostCommonHeaders;
 }
 
-module.exports = {
-  normalizeHeaders,
-};
+function normalizeCSVFile(inputPath, outputPath, normalizedHeaders) {
+  const rows = [];
+  fs.createReadStream(inputPath)
+    .pipe(csv())
+    .on("data", (row) => rows.push(row))
+    .on("end", () => {
+      const csvStringifier = createCsvStringifier({
+        header: normalizedHeaders.map((header) => ({
+          id: header,
+          title: header,
+        })),
+      });
+
+      const normalizedRows = rows.map((row) => {
+        const normalizedRow = {};
+        normalizedHeaders.forEach((header) => {
+          const matchingKey = Object.keys(row).find(
+            (key) => key.toLowerCase() === header.toLowerCase()
+          );
+          normalizedRow[header] = matchingKey ? row[matchingKey] : "";
+        });
+        return normalizedRow;
+      });
+
+      const csvContent =
+        csvStringifier.getHeaderString() +
+        csvStringifier.stringifyRecords(normalizedRows);
+      fs.writeFileSync(outputPath, csvContent);
+      console.log(
+        `Normalized ${path.basename(inputPath)} -> ${path.basename(outputPath)}`
+      );
+    });
+}
+
+module.exports = { normalizeHeaders };
